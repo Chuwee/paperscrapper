@@ -1,6 +1,9 @@
 # Database files
 cortex.db
 
+# Environment variables
+.env
+
 # Python
 __pycache__/
 *.py[cod]
