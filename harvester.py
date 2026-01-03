@@ -37,7 +37,7 @@ def fetch_papers(categories: list[str], max_results: int = 20) -> list[dict]:
     papers = []
     for result in search.results():
         # Extract arXiv ID and remove version suffix (e.g., '2310.12345v1' -> '2310.12345')
-        # Version suffix is 'v' followed by one or more digits at the end
+        # Version suffix is 'v' followed by digits at the end
         short_id = result.get_short_id()
         arxiv_id = re.sub(r'v\d+$', '', short_id)
         
