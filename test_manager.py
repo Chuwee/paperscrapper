@@ -335,7 +335,8 @@ def test_no_interested_papers_prevents_transition():
     test_user_id = 12345
     database.add_user(test_user_id)
     
-    # Add 50 test papers
+    # Add 50 test papers and capture their IDs
+    paper_ids = []
     for i in range(50):
         paper = {
             'arxiv_id': f'2310.{i:05d}',
@@ -344,7 +345,8 @@ def test_no_interested_papers_prevents_transition():
             'abstract': f'Test abstract {i}.',
             'published': datetime.now()
         }
-        database.store_paper(paper)
+        paper_id = database.store_paper(paper)
+        paper_ids.append(paper_id)
     
     # Verify user starts in calibration mode
     status = database.get_user_status(test_user_id)
@@ -352,7 +354,7 @@ def test_no_interested_papers_prevents_transition():
     
     # Add 25 'not_interested' interactions (more than the 20 threshold)
     for i in range(25):
-        database.log_interaction(test_user_id, i + 1, 'not_interested')
+        database.log_interaction(test_user_id, paper_ids[i], 'not_interested')
     
     # Verify interaction count is above threshold
     count = database.get_interaction_count(test_user_id)
