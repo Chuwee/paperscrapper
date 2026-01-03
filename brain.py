@@ -61,7 +61,13 @@ class RecommendationEngine:
         
         # Initialize OpenAI client if not mocking
         if not self.mock_llm:
-            openai.api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.getenv('OPENAI_API_KEY')
+            if api_key:
+                self.openai_client = openai.OpenAI(api_key=api_key)
+            else:
+                self.openai_client = None
+        else:
+            self.openai_client = None
     
     def _generate_embedding(self, text: str) -> np.ndarray:
         """
@@ -113,7 +119,7 @@ class RecommendationEngine:
         # Check if user profile already exists
         try:
             self.user_profiles_collection.delete(ids=[user_id_str])
-        except:
+        except Exception:
             pass  # User profile doesn't exist yet
         
         # Add the new user profile
@@ -205,7 +211,12 @@ New paper abstract:
 Is this new paper relevant to the user's interests?"""
         
         try:
-            response = openai.chat.completions.create(
+            if not self.openai_client:
+                # No API key configured, default to False
+                print("OpenAI client not initialized (no API key)")
+                return False
+            
+            response = self.openai_client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": system_prompt},

@@ -232,8 +232,8 @@ def test_evaluate_paper():
     # Test with low similarity
     setup_test_environment()
     database.add_user(12345)
-    database.store_paper(paper1)
-    database.log_interaction(12345, paper1_id, 'interested')
+    paper1_id_new = database.store_paper(paper1)
+    database.log_interaction(12345, paper1_id_new, 'interested')
     
     with patch('brain.SentenceTransformer') as MockSentenceTransformer:
         mock_model = Mock()
