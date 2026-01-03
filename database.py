@@ -17,6 +17,9 @@ def init_db():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
     # Create users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -47,7 +50,8 @@ def init_db():
             action TEXT NOT NULL,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(telegram_id),
-            FOREIGN KEY (paper_id) REFERENCES papers(id)
+            FOREIGN KEY (paper_id) REFERENCES papers(id),
+            UNIQUE(user_id, paper_id)
         )
     ''')
     
@@ -64,6 +68,9 @@ def add_user(telegram_id: int):
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
     
     try:
         cursor.execute(
@@ -87,6 +94,9 @@ def store_paper(paper_data: dict) -> Optional[int]:
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
     
     try:
         # Convert datetime to ISO format string if present
@@ -133,9 +143,12 @@ def log_interaction(user_id: int, paper_id: int, action: str):
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
     try:
         cursor.execute(
-            '''INSERT INTO interactions (user_id, paper_id, action)
+            '''INSERT OR REPLACE INTO interactions (user_id, paper_id, action)
                VALUES (?, ?, ?)''',
             (user_id, paper_id, action)
         )
@@ -158,6 +171,9 @@ def get_unseen_papers(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row  # Enable column access by name
     cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
     
     try:
         cursor.execute(
@@ -204,6 +220,7 @@ if __name__ == "__main__":
     # Verify users
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON')
     cursor.execute('SELECT telegram_id, status FROM users')
     users = cursor.fetchall()
     print(f"  Users in database: {users}")
@@ -244,6 +261,7 @@ if __name__ == "__main__":
     # Verify interactions
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON')
     cursor.execute('SELECT user_id, paper_id, action FROM interactions')
     interactions = cursor.fetchall()
     print(f"  Interactions in database: {interactions}")
@@ -273,5 +291,36 @@ if __name__ == "__main__":
     print(f"✓ Unseen papers for user 67890: {len(unseen_for_user2)}")
     for paper in unseen_for_user2:
         print(f"  - {paper['title']} (arxiv_id: {paper['arxiv_id']})")
+    
+    # Test 6: Foreign key constraint enforcement
+    print("\n=== Test 6: Foreign Key Constraints ===")
+    try:
+        log_interaction(99999, paper1_id, 'interested')  # Non-existent user
+        print("✗ Foreign key constraint NOT enforced (user_id)")
+    except sqlite3.IntegrityError as e:
+        print(f"✓ Foreign key constraint enforced (user_id): {e}")
+    
+    try:
+        log_interaction(12345, 99999, 'interested')  # Non-existent paper
+        print("✗ Foreign key constraint NOT enforced (paper_id)")
+    except sqlite3.IntegrityError as e:
+        print(f"✓ Foreign key constraint enforced (paper_id): {e}")
+    
+    # Test 7: Unique constraint on (user_id, paper_id)
+    print("\n=== Test 7: Duplicate Interaction Prevention ===")
+    # Try to log the same interaction again (should replace, not duplicate)
+    log_interaction(12345, paper1_id, 'not_interested')  # Change vote
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('PRAGMA foreign_keys = ON')
+    cursor.execute('SELECT action FROM interactions WHERE user_id = ? AND paper_id = ?', (12345, paper1_id))
+    result = cursor.fetchone()
+    print(f"✓ User 12345's vote for paper 1 was updated to: {result[0]}")
+    
+    cursor.execute('SELECT COUNT(*) FROM interactions WHERE user_id = ? AND paper_id = ?', (12345, paper1_id))
+    count = cursor.fetchone()[0]
+    print(f"✓ Number of interactions for user 12345 and paper 1: {count} (should be 1)")
+    conn.close()
     
     print("\n=== All Tests Passed! ===")
