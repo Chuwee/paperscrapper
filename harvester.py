@@ -2,6 +2,7 @@
 Harvester module for fetching papers from arXiv.
 """
 import arxiv
+import re
 
 
 def fetch_papers(categories: list[str], max_results: int = 20) -> list[dict]:
@@ -36,7 +37,9 @@ def fetch_papers(categories: list[str], max_results: int = 20) -> list[dict]:
     papers = []
     for result in search.results():
         # Extract arXiv ID and remove version suffix (e.g., '2310.12345v1' -> '2310.12345')
-        arxiv_id = result.get_short_id().split('v')[0]
+        # Version suffix is 'v' followed by one or more digits at the end
+        short_id = result.get_short_id()
+        arxiv_id = re.sub(r'v\d+$', '', short_id)
         
         paper = {
             'arxiv_id': arxiv_id,
