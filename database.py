@@ -147,6 +147,8 @@ def log_interaction(user_id: int, paper_id: int, action: str):
     cursor.execute('PRAGMA foreign_keys = ON')
     
     try:
+        # Use INSERT OR REPLACE to update existing votes
+        # Note: This will update the timestamp to reflect when the vote was changed
         cursor.execute(
             '''INSERT OR REPLACE INTO interactions (user_id, paper_id, action)
                VALUES (?, ?, ?)''',
