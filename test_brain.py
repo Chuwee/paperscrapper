@@ -294,9 +294,15 @@ def test_get_paper_score():
         
         # Now test get_paper_score
         mock_model.encode.return_value = np.array([0.95, 0.05, 0.0])
-        score = get_paper_score(12345, "Advanced NLP techniques using transformers.", mock_llm=True)
+        score = get_paper_score(
+            12345, 
+            "Advanced NLP techniques using transformers.", 
+            mock_llm=True,
+            use_ephemeral=True
+        )
         
         assert isinstance(score, bool), "Score should be a boolean"
+        assert score == True, "Should recommend similar paper"
         print(f"✓ get_paper_score function works correctly: {score}")
 
 

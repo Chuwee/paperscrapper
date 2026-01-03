@@ -227,7 +227,7 @@ Is this new paper relevant to the user's interests?"""
             )
             
             answer = response.choices[0].message.content.strip().upper()
-            return "TRUE" in answer
+            return answer == "TRUE"
             
         except Exception as e:
             # If LLM call fails, default to False (conservative)
@@ -276,7 +276,7 @@ Is this new paper relevant to the user's interests?"""
         return self._call_llm(interested_papers[:3], paper)
 
 
-def get_paper_score(user_id: int, paper_text: str, mock_llm: bool = False) -> bool:
+def get_paper_score(user_id: int, paper_text: str, mock_llm: bool = False, use_ephemeral: bool = False) -> bool:
     """
     Convenience function to get paper recommendation score.
     
@@ -284,11 +284,12 @@ def get_paper_score(user_id: int, paper_text: str, mock_llm: bool = False) -> bo
         user_id: The telegram_id of the user
         paper_text: The paper abstract or full text
         mock_llm: If True, use mock LLM responses for testing
+        use_ephemeral: If True, use ephemeral ChromaDB client (in-memory)
     
     Returns:
         True if paper is recommended, False otherwise
     """
-    engine = RecommendationEngine(mock_llm=mock_llm)
+    engine = RecommendationEngine(mock_llm=mock_llm, use_ephemeral=use_ephemeral)
     paper = {'abstract': paper_text}
     return engine.evaluate_paper(user_id, paper)
 
