@@ -67,8 +67,9 @@ async def daily_briefing_job(context):
     saved_count = 0
     for paper in papers:
         try:
-            # Extract the first category as sub_category
-            sub_category = paper.get('categories', ['unknown'])[0]
+            # Extract the first category as sub_category, handling empty lists
+            categories = paper.get('categories', [])
+            sub_category = categories[0] if categories else 'unknown'
             
             # Create paper data dict for database
             paper_data = {
