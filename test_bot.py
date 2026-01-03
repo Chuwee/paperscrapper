@@ -75,6 +75,81 @@ def test_send_paper_formatting():
         sys.exit(1)
 
 
+def test_edge_cases():
+    """Test edge cases like None abstract, missing paper_id, and HTML escaping."""
+    print("\n=== Testing edge cases ===\n")
+    
+    # Test 1: None abstract (from NULL in database)
+    print("Test 1: None abstract handling")
+    paper_with_none_abstract = {
+        'id': 1,
+        'title': 'Test Paper',
+        'sub_category': 'cs.AI',
+        'published': '2023-01-01',
+        'abstract': None,  # Simulates NULL from database
+        'arxiv_id': '2301.00001'
+    }
+    try:
+        message_params = bot.send_paper(chat_id=12345, paper_dict=paper_with_none_abstract)
+        assert 'Key Abstract:' in message_params['text']
+        print("  ✓ None abstract handled correctly")
+    except TypeError as e:
+        print(f"  ✗ Failed with TypeError: {e}")
+        sys.exit(1)
+    
+    # Test 2: Missing paper_id
+    print("\nTest 2: Missing paper_id validation")
+    paper_without_id = {
+        'title': 'Test Paper',
+        'sub_category': 'cs.AI',
+        'published': '2023-01-01',
+        'abstract': 'Test abstract',
+        'arxiv_id': '2301.00001'
+    }
+    try:
+        bot.send_paper(chat_id=12345, paper_dict=paper_without_id)
+        print("  ✗ Should have raised ValueError for missing paper_id")
+        sys.exit(1)
+    except ValueError as e:
+        print(f"  ✓ Correctly raised ValueError: {e}")
+    
+    # Test 3: HTML special characters escaping
+    print("\nTest 3: HTML special characters escaping")
+    paper_with_html = {
+        'id': 1,
+        'title': 'AI & Machine Learning: <New> "Approaches"',
+        'sub_category': 'cs.AI & <ML>',
+        'published': '2023-01-01',
+        'abstract': 'This paper explores <novel> approaches & "methods" in AI.',
+        'arxiv_id': '2301.00001'
+    }
+    message_params = bot.send_paper(chat_id=12345, paper_dict=paper_with_html)
+    message_text = message_params['text']
+    
+    # Verify HTML entities are escaped
+    html_checks = [
+        ("Ampersand escaped in title", "&amp;" in message_text and "AI & Machine" not in message_text),
+        ("Less-than escaped", "&lt;" in message_text and "<New>" not in message_text and "<novel>" not in message_text),
+        ("Greater-than escaped", "&gt;" in message_text and "<New>" not in message_text),
+        ("Quotes escaped", "&quot;" in message_text or "&#x27;" in message_text),
+    ]
+    
+    all_passed = True
+    for check_name, result in html_checks:
+        status = "✓" if result else "✗"
+        print(f"  {status} {check_name}")
+        if not result:
+            all_passed = False
+    
+    if not all_passed:
+        print("\n✗ HTML escaping tests failed!")
+        print("Message text:")
+        print(message_text)
+        sys.exit(1)
+    
+    print("\n✓ All edge case tests passed!")
+
+
 def test_database_integration():
     """Test that the bot can interact with the database."""
     print("\n=== Testing database integration ===\n")
@@ -120,5 +195,6 @@ def test_database_integration():
 
 if __name__ == '__main__':
     test_send_paper_formatting()
+    test_edge_cases()
     test_database_integration()
     print("\n=== All tests passed! ===")

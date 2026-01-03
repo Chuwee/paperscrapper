@@ -3,6 +3,7 @@ Telegram Bot interface for Cortex paper recommendation system.
 """
 import os
 import logging
+from html import escape
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -31,11 +32,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Handle the /start command.
     Welcomes the user and registers them in the database.
     """
-    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
     
     # Add user to database
-    database.add_user(chat_id)
-    logger.info(f"User {chat_id} registered")
+    database.add_user(user_id)
+    logger.info(f"User {user_id} registered")
     
     # Send welcome message
     await update.message.reply_text(
@@ -65,8 +66,16 @@ def send_paper(chat_id: int, paper_dict: dict):
     title = paper_dict.get('title', 'Untitled')
     category = paper_dict.get('sub_category', 'Unknown')
     published = paper_dict.get('published', '')
-    abstract = paper_dict.get('abstract', '')
+    abstract = paper_dict.get('abstract')
     arxiv_id = paper_dict.get('arxiv_id', '')
+    
+    # Validate paper_id
+    if paper_id is None:
+        raise ValueError("paper_dict must contain an 'id' key with a valid paper ID")
+    
+    # Handle None abstract (from NULL in database)
+    if abstract is None:
+        abstract = ''
     
     # Format the published date (extract just the date part if it's a full timestamp)
     if published:
@@ -84,14 +93,20 @@ def send_paper(chat_id: int, paper_dict: dict):
     if len(abstract) > 300:
         key_abstract += "..."
     
+    # Escape HTML special characters to prevent malformed HTML
+    title_escaped = escape(title)
+    category_escaped = escape(category)
+    published_str_escaped = escape(published_str)
+    key_abstract_escaped = escape(key_abstract)
+    
     # Construct PDF URL
     pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
     
     # Format the message with HTML
     message_text = (
-        f"<b>{title}</b>\n"
-        f"<i>{category} | {published_str}</i>\n\n"
-        f"Key Abstract: {key_abstract}\n\n"
+        f"<b>{title_escaped}</b>\n"
+        f"<i>{category_escaped} | {published_str_escaped}</i>\n\n"
+        f"Key Abstract: {key_abstract_escaped}\n\n"
         f"<a href='{pdf_url}'>Read Full PDF</a>"
     )
     
