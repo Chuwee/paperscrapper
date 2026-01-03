@@ -2,7 +2,6 @@
 Harvester module for fetching papers from arXiv.
 """
 import arxiv
-from datetime import datetime
 
 
 def fetch_papers(categories: list[str], max_results: int = 20) -> list[dict]:
@@ -37,7 +36,7 @@ def fetch_papers(categories: list[str], max_results: int = 20) -> list[dict]:
     papers = []
     for result in search.results():
         paper = {
-            'arxiv_id': result.entry_id.split('/')[-1],  # Extract ID from URL
+            'arxiv_id': result.get_short_id(),  # Clean arXiv ID without version
             'title': result.title,
             'abstract': result.summary.replace('\n', ' ').strip(),  # Clean up newlines
             'authors': [author.name for author in result.authors],
