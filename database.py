@@ -230,6 +230,117 @@ def get_interested_papers(user_id: int) -> List[Dict[str, Any]]:
         conn.close()
 
 
+def get_user_status(user_id: int) -> Optional[str]:
+    """
+    Get the current status of a user.
+    
+    Args:
+        user_id: The telegram_id of the user
+    
+    Returns:
+        User status ('calibration' or 'active'), or None if user not found
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
+    try:
+        cursor.execute(
+            'SELECT status FROM users WHERE telegram_id = ?',
+            (user_id,)
+        )
+        result = cursor.fetchone()
+        return result[0] if result else None
+    finally:
+        conn.close()
+
+
+def update_user_status(user_id: int, status: str):
+    """
+    Update the status of a user.
+    
+    Args:
+        user_id: The telegram_id of the user
+        status: New status ('calibration' or 'active')
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
+    try:
+        cursor.execute(
+            'UPDATE users SET status = ? WHERE telegram_id = ?',
+            (status, user_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_interaction_count(user_id: int) -> int:
+    """
+    Get the total number of interactions (both interested and not_interested) for a user.
+    
+    Args:
+        user_id: The telegram_id of the user
+    
+    Returns:
+        Total number of interactions
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
+    try:
+        cursor.execute(
+            'SELECT COUNT(*) FROM interactions WHERE user_id = ?',
+            (user_id,)
+        )
+        result = cursor.fetchone()
+        return result[0] if result else 0
+    finally:
+        conn.close()
+
+
+def get_latest_papers(limit: int = 50) -> List[Dict[str, Any]]:
+    """
+    Get the latest papers from the database, ordered by published date.
+    
+    Args:
+        limit: Maximum number of papers to return (default: 50)
+    
+    Returns:
+        List of dictionaries containing paper data
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # Enable column access by name
+    cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
+    try:
+        cursor.execute(
+            '''SELECT id, arxiv_id, title, sub_category, abstract, published
+               FROM papers
+               ORDER BY published DESC
+               LIMIT ?''',
+            (limit,)
+        )
+        
+        results = cursor.fetchall()
+        papers = [dict(row) for row in results]
+        return papers
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     """
     Test script to verify database functionality.
