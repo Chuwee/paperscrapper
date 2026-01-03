@@ -2,3 +2,6 @@ arxiv
 requests
 python-telegram-bot
 python-dotenv
+openai
+chromadb
+sentence-transformers

@@ -196,6 +196,40 @@ def get_unseen_papers(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         conn.close()
 
 
+def get_interested_papers(user_id: int) -> List[Dict[str, Any]]:
+    """
+    Get all papers that the user has marked as 'interested'.
+    
+    Args:
+        user_id: The telegram_id of the user
+    
+    Returns:
+        List of dictionaries containing paper data
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # Enable column access by name
+    cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
+    try:
+        cursor.execute(
+            '''SELECT p.id, p.arxiv_id, p.title, p.sub_category, p.abstract, p.published
+               FROM papers p
+               INNER JOIN interactions i ON p.id = i.paper_id
+               WHERE i.user_id = ? AND i.action = 'interested'
+               ORDER BY i.timestamp DESC''',
+            (user_id,)
+        )
+        
+        results = cursor.fetchall()
+        papers = [dict(row) for row in results]
+        return papers
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     """
     Test script to verify database functionality.
