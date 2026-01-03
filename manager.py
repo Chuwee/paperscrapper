@@ -9,7 +9,7 @@ import database
 import brain
 
 
-def get_matches_for_user(user_id: int) -> List[Dict[str, Any]]:
+def get_matches_for_user(user_id: int, mock_llm: bool = False) -> List[Dict[str, Any]]:
     """
     Get matched papers for a user based on their current status.
     
@@ -26,6 +26,7 @@ def get_matches_for_user(user_id: int) -> List[Dict[str, Any]]:
     
     Args:
         user_id: The telegram_id of the user
+        mock_llm: If True, use mock LLM for testing (default: False)
     
     Returns:
         List of dictionaries containing paper data
@@ -41,14 +42,7 @@ def get_matches_for_user(user_id: int) -> List[Dict[str, Any]]:
     latest_papers = database.get_latest_papers(limit=50)
     
     # Filter out papers already seen by the user
-    unseen_papers = []
-    for paper in latest_papers:
-        # Check if user has interacted with this paper
-        # We'll do this by getting all unseen papers using existing function
-        pass
-    
-    # Use the existing function to get unseen papers
-    # However, we need to filter from the latest 50
+    # Use the existing function to get unseen papers, then filter from latest 50
     all_unseen = database.get_unseen_papers(user_id, limit=1000)
     unseen_paper_ids = {p['id'] for p in all_unseen}
     
@@ -61,7 +55,7 @@ def get_matches_for_user(user_id: int) -> List[Dict[str, Any]]:
         if interaction_count > 20:
             database.update_user_status(user_id, 'active')
             # Recurse to get matches for active user
-            return get_matches_for_user(user_id)
+            return get_matches_for_user(user_id, mock_llm=mock_llm)
         
         # Calibration mode: select 10 papers with category diversity
         return _select_diverse_papers(unseen_latest, count=10)
@@ -71,7 +65,7 @@ def get_matches_for_user(user_id: int) -> List[Dict[str, Any]]:
         recommended_papers = []
         
         # Create recommendation engine instance
-        engine = brain.RecommendationEngine(mock_llm=False)
+        engine = brain.RecommendationEngine(mock_llm=mock_llm)
         
         # Update user profile first (in case it's not up to date)
         engine.update_user_profile(user_id)

@@ -242,7 +242,8 @@ def test_calibration_to_active_transition():
         MockEngine.return_value = mock_engine_instance
         
         # Call get_matches_for_user - should trigger transition
-        matches = manager.get_matches_for_user(test_user_id)
+        # Pass mock_llm=True since we're mocking the engine
+        matches = manager.get_matches_for_user(test_user_id, mock_llm=True)
         
         # Verify user is now in active mode
         status = database.get_user_status(test_user_id)
@@ -296,7 +297,8 @@ def test_get_matches_active_mode():
         MockEngine.return_value = mock_engine_instance
         
         # Get matches - should use brain to filter
-        matches = manager.get_matches_for_user(test_user_id)
+        # Pass mock_llm=True since we're mocking the engine
+        matches = manager.get_matches_for_user(test_user_id, mock_llm=True)
         
         # Verify that update_user_profile was called
         mock_engine_instance.update_user_profile.assert_called_once_with(test_user_id)
@@ -325,7 +327,7 @@ def test_nonexistent_user():
 
 
 if __name__ == "__main__":
-    """Run all tests."""
+    # Run all tests
     print("=" * 80)
     print("Running Manager Module Tests")
     print("=" * 80)
