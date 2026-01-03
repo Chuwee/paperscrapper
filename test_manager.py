@@ -326,6 +326,91 @@ def test_nonexistent_user():
     print("✓ Returns empty list for nonexistent user")
 
 
+def test_no_interested_papers_prevents_transition():
+    """Test that users with only 'not_interested' votes stay in calibration mode."""
+    print("\n=== Test 8: No Interested Papers Prevents Transition ===")
+    setup_test_environment()
+    
+    # Add a user
+    test_user_id = 12345
+    database.add_user(test_user_id)
+    
+    # Add 50 test papers
+    for i in range(50):
+        paper = {
+            'arxiv_id': f'2310.{i:05d}',
+            'title': f'Test Paper {i}',
+            'sub_category': 'cs.AI',
+            'abstract': f'Test abstract {i}.',
+            'published': datetime.now()
+        }
+        database.store_paper(paper)
+    
+    # Verify user starts in calibration mode
+    status = database.get_user_status(test_user_id)
+    assert status == 'calibration', f"Expected 'calibration', got {status}"
+    
+    # Add 25 'not_interested' interactions (more than the 20 threshold)
+    for i in range(25):
+        database.log_interaction(test_user_id, i + 1, 'not_interested')
+    
+    # Verify interaction count is above threshold
+    count = database.get_interaction_count(test_user_id)
+    assert count == 25, f"Expected 25 interactions, got {count}"
+    
+    # Call get_matches_for_user - should NOT trigger transition because no interested papers
+    matches = manager.get_matches_for_user(test_user_id)
+    
+    # Verify user is still in calibration mode
+    status = database.get_user_status(test_user_id)
+    assert status == 'calibration', f"Expected to stay in 'calibration', got {status}"
+    print("✓ User with only 'not_interested' votes stays in calibration mode")
+    
+    # Verify we still got matches (should be calibration-mode diverse papers)
+    assert len(matches) > 0, f"Expected some matches, got {len(matches)}"
+    print(f"✓ Still returns {len(matches)} calibration-mode matches")
+
+
+def test_active_mode_fallback_to_calibration():
+    """Test that active mode falls back to calibration if profile creation fails."""
+    print("\n=== Test 9: Active Mode Fallback to Calibration ===")
+    setup_test_environment()
+    
+    # Add a user and manually set to active mode
+    test_user_id = 12345
+    database.add_user(test_user_id)
+    database.update_user_status(test_user_id, 'active')
+    
+    # Add test papers but NO interested papers for this user
+    for i in range(20):
+        paper = {
+            'arxiv_id': f'2310.{i:05d}',
+            'title': f'Test Paper {i}',
+            'sub_category': 'cs.AI',
+            'abstract': f'Test abstract {i}.',
+            'published': datetime.now()
+        }
+        database.store_paper(paper)
+    
+    # Mock the brain module (though it shouldn't be called if fallback works)
+    with patch('manager.brain.RecommendationEngine') as MockEngine:
+        mock_engine_instance = Mock()
+        mock_engine_instance.update_user_profile.return_value = False  # Simulate failure
+        MockEngine.return_value = mock_engine_instance
+        
+        # Get matches - should fall back to calibration mode
+        matches = manager.get_matches_for_user(test_user_id, mock_llm=True)
+        
+        # Verify user was reverted to calibration mode
+        status = database.get_user_status(test_user_id)
+        assert status == 'calibration', f"Expected 'calibration' after fallback, got {status}"
+        print("✓ User reverted to calibration mode after profile update failure")
+        
+        # Verify we got calibration-mode matches
+        assert len(matches) > 0, f"Expected some matches, got {len(matches)}"
+        print(f"✓ Returns {len(matches)} calibration-mode matches after fallback")
+
+
 if __name__ == "__main__":
     # Run all tests
     print("=" * 80)
@@ -340,6 +425,8 @@ if __name__ == "__main__":
         test_calibration_to_active_transition()
         test_get_matches_active_mode()
         test_nonexistent_user()
+        test_no_interested_papers_prevents_transition()
+        test_active_mode_fallback_to_calibration()
         
         print("\n" + "=" * 80)
         print("All Tests Passed!")

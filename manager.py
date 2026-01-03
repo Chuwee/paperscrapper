@@ -53,9 +53,14 @@ def get_matches_for_user(user_id: int, mock_llm: bool = False) -> List[Dict[str,
         # Check if user should transition to active
         interaction_count = database.get_interaction_count(user_id)
         if interaction_count > 20:
-            database.update_user_status(user_id, 'active')
-            # Recurse to get matches for active user
-            return get_matches_for_user(user_id, mock_llm=mock_llm)
+            # Before transitioning, verify user has interested papers for profile creation
+            interested_papers = database.get_interested_papers(user_id)
+            if interested_papers:
+                # User has interested papers, safe to transition
+                database.update_user_status(user_id, 'active')
+                # Recurse to get matches for active user
+                return get_matches_for_user(user_id, mock_llm=mock_llm)
+            # else: User has no interested papers, stay in calibration mode
         
         # Calibration mode: select 10 papers with category diversity
         return _select_diverse_papers(unseen_latest, count=10)
@@ -68,7 +73,13 @@ def get_matches_for_user(user_id: int, mock_llm: bool = False) -> List[Dict[str,
         engine = brain.RecommendationEngine(mock_llm=mock_llm)
         
         # Update user profile first (in case it's not up to date)
-        engine.update_user_profile(user_id)
+        profile_updated = engine.update_user_profile(user_id)
+        
+        # If profile update failed, fall back to calibration mode
+        if not profile_updated:
+            # Revert to calibration mode and get diverse papers
+            database.update_user_status(user_id, 'calibration')
+            return _select_diverse_papers(unseen_latest, count=10)
         
         # Evaluate each unseen paper
         for paper in unseen_latest:
