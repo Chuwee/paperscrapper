@@ -89,9 +89,10 @@ def send_paper(chat_id: int, paper_dict: dict):
         published_str = 'Unknown'
     
     # Truncate abstract to first 300 characters
-    key_abstract = abstract[:300] if len(abstract) > 300 else abstract
     if len(abstract) > 300:
-        key_abstract += "..."
+        key_abstract = abstract[:300] + "..."
+    else:
+        key_abstract = abstract
     
     # Escape HTML special characters to prevent malformed HTML
     title_escaped = escape(title)
