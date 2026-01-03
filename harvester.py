@@ -35,8 +35,11 @@ def fetch_papers(categories: list[str], max_results: int = 20) -> list[dict]:
     # Fetch and structure results
     papers = []
     for result in search.results():
+        # Extract arXiv ID and remove version suffix (e.g., '2310.12345v1' -> '2310.12345')
+        arxiv_id = result.get_short_id().split('v')[0]
+        
         paper = {
-            'arxiv_id': result.get_short_id(),  # Clean arXiv ID without version
+            'arxiv_id': arxiv_id,
             'title': result.title,
             'abstract': result.summary.replace('\n', ' ').strip(),  # Clean up newlines
             'authors': [author.name for author in result.authors],
