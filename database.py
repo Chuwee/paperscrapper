@@ -341,6 +341,38 @@ def get_latest_papers(limit: int = 50) -> List[Dict[str, Any]]:
         conn.close()
 
 
+def get_active_users() -> List[Dict[str, Any]]:
+    """
+    Get all users with 'active' status.
+    
+    Returns:
+        List of dictionaries containing user data with keys:
+        - telegram_id: The user's Telegram ID
+        - joined_at: When the user joined
+        - status: User status (will be 'active')
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row  # Enable column access by name
+    cursor = conn.cursor()
+    
+    # Enable foreign key constraints
+    cursor.execute('PRAGMA foreign_keys = ON')
+    
+    try:
+        cursor.execute(
+            '''SELECT telegram_id, joined_at, status
+               FROM users
+               WHERE status = 'active'
+               ORDER BY joined_at DESC'''
+        )
+        
+        results = cursor.fetchall()
+        users = [dict(row) for row in results]
+        return users
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     """
     Test script to verify database functionality.
