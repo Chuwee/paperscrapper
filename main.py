@@ -152,27 +152,19 @@ def main():
     job_queue = application.job_queue
     
     # Schedule the daily briefing job
-    # For production: run daily at 08:00 UTC
-    # job_queue.run_daily(
-    #     daily_briefing_job,
-    #     time=time(hour=8, minute=0, second=0),
-    #     name='daily_briefing'
-    # )
+    # Default: run every 24 hours
+    # To run at a specific time (e.g., 08:00 UTC), use:
+    #   job_queue.run_daily(daily_briefing_job, time=time(hour=8, minute=0), name='daily_briefing')
+    # To test with short interval (e.g., every 10 seconds), use:
+    #   job_queue.run_repeating(daily_briefing_job, interval=10, first=5, name='daily_briefing_test')
     
-    # For testing: run every 10 seconds (comment out for production)
-    # Uncomment the line below to test with short interval:
-    # job_queue.run_repeating(
-    #     daily_briefing_job,
-    #     interval=10,
-    #     first=5,
-    #     name='daily_briefing_test'
-    # )
+    # Get initial delay from environment or use default of 10 seconds
+    initial_delay = int(os.getenv('BRIEFING_INITIAL_DELAY', '10'))
     
-    # For production: run every 24 hours, starting immediately
     job_queue.run_repeating(
         daily_briefing_job,
         interval=86400,  # 24 hours in seconds
-        first=10,  # Run first job after 10 seconds
+        first=initial_delay,
         name='daily_briefing'
     )
     
