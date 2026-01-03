@@ -36,10 +36,13 @@ def test_send_paper_formatting():
     # Verify message structure
     message_text = message_params['text']
     
+    # Extract abstract from message for validation
+    abstract_text = message_text.split("Key Abstract:")[1].split("\n\n")[0].strip()
+    
     checks = [
         ("Title in bold", "<b>Attention Is All You Need</b>" in message_text),
         ("Category and date", "<i>cs.CL | 2017-06-12</i>" in message_text),
-        ("Abstract truncation", len(message_text.split("Key Abstract:")[1].split("\n\n")[0].strip()) <= 303),  # 300 chars + "..."
+        ("Abstract truncation", len(abstract_text) <= 303),  # 300 chars + "..."
         ("PDF link", "https://arxiv.org/pdf/1706.03762.pdf" in message_text),
         ("HTML parse mode", message_params['parse_mode'] == 'HTML'),
         ("Inline keyboard exists", message_params['reply_markup'] is not None),
@@ -76,9 +79,14 @@ def test_database_integration():
     """Test that the bot can interact with the database."""
     print("\n=== Testing database integration ===\n")
     
+    # Use a separate test database
+    test_db = 'test_cortex.db'
+    original_db = database.DB_PATH
+    database.DB_PATH = test_db
+    
     # Initialize database
-    if os.path.exists('cortex.db'):
-        os.remove('cortex.db')
+    if os.path.exists(test_db):
+        os.remove(test_db)
     
     database.init_db()
     print("✓ Database initialized")
@@ -101,6 +109,11 @@ def test_database_integration():
     # Log an interaction
     database.log_interaction(12345, paper_id, 'interested')
     print("✓ Interaction logged")
+    
+    # Clean up test database
+    database.DB_PATH = original_db
+    if os.path.exists(test_db):
+        os.remove(test_db)
     
     print("\n✓ Database integration works correctly!")
 

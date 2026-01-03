@@ -58,7 +58,7 @@ def send_paper(chat_id: int, paper_dict: dict):
             - arxiv_id: ArXiv ID for PDF link
     
     Returns:
-        A coroutine that sends the formatted message
+        Dictionary of message parameters for sending via Telegram API
     """
     # Extract paper information
     paper_id = paper_dict.get('id')
