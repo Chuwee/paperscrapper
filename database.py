@@ -3,7 +3,7 @@ Database module for persistent storage using SQLite.
 """
 import sqlite3
 from datetime import datetime
-from typing import Optional
+from typing import Dict, List, Optional, Any
 
 # Global constant for database path
 DB_PATH = 'cortex.db'
@@ -75,7 +75,7 @@ def add_user(telegram_id: int):
         conn.close()
 
 
-def store_paper(paper_data: dict) -> int:
+def store_paper(paper_data: dict) -> Optional[int]:
     """
     Insert a paper into the database if it doesn't exist.
     
@@ -144,7 +144,7 @@ def log_interaction(user_id: int, paper_id: int, action: str):
         conn.close()
 
 
-def get_unseen_papers(user_id: int, limit: int = 10) -> list[dict]:
+def get_unseen_papers(user_id: int, limit: int = 10) -> List[Dict[str, Any]]:
     """
     Get papers that the user has not yet interacted with.
     
